@@ -14,6 +14,7 @@ import type { TemplateRule } from "./types";
 
 export class FolderTemplatesSettingTab extends PluginSettingTab {
   plugin: FolderTemplatesPlugin;
+  private readonly openRuleIds = new Set<string>();
 
   constructor(app: App, plugin: FolderTemplatesPlugin) {
     super(app, plugin);
@@ -23,6 +24,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
 
+    this.captureOpenRules();
     containerEl.empty();
 
     containerEl.createEl("h2", {
@@ -31,6 +33,26 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
 
     this.renderGeneralSettings(containerEl);
     this.renderRules(containerEl);
+  }
+
+  private captureOpenRules(): void {
+    for (const details of Array.from(
+      this.containerEl.querySelectorAll<HTMLDetailsElement>(
+        "details[data-rule-id]",
+      ),
+    )) {
+      const id = details.dataset.ruleId;
+
+      if (!id) {
+        continue;
+      }
+
+      if (details.open) {
+        this.openRuleIds.add(id);
+      } else {
+        this.openRuleIds.delete(id);
+      }
+    }
   }
 
   private renderGeneralSettings(containerEl: HTMLElement): void {
@@ -145,14 +167,17 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
         .onClick(async () => {
           const number = this.plugin.settings.rules.length + 1;
 
-          this.plugin.settings.rules.push({
+          const rule: TemplateRule = {
             id: crypto.randomUUID(),
             name: `Rule ${number} `,
             enabled: true,
             pattern: "^notes/",
             mode: "regex",
             template: "templates/note.md",
-          });
+          };
+
+          this.plugin.settings.rules.push(rule);
+          this.openRuleIds.add(rule.id);
 
           await this.plugin.saveSettings();
           this.display();
@@ -168,8 +193,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
     const ruleContainer = containerEl.createEl("details", {
       cls: "folder-templates-rule",
     });
-
-    ruleContainer.open = true;
+    ruleContainer.dataset.ruleId = rule.id;
 
     const header = ruleContainer.createEl("summary", {
       cls: "folder-templates-rule-header",
@@ -258,6 +282,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
           };
 
           this.plugin.settings.rules.splice(index + 1, 0, copy);
+          this.openRuleIds.add(copy.id);
 
           await this.plugin.saveSettings();
           this.display();
@@ -271,6 +296,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             this.plugin.settings.rules = this.plugin.settings.rules.filter(
               (item) => item.id !== rule.id,
             );
+            this.openRuleIds.delete(rule.id);
 
             await this.plugin.saveSettings();
             this.display();
@@ -280,7 +306,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
       collapseIcon.setText(ruleContainer.open ? "▾" : "▸");
     });
 
-    ruleContainer.open = false;
+    ruleContainer.open = this.openRuleIds.has(rule.id);
   }
 }
 

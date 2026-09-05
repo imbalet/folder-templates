@@ -8,8 +8,8 @@
     "build": "node esbuild.config.mjs production",
     "check": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
-    "format": "prettier --write src README.md",
-    "format:check": "prettier --check src test README.md package.json"
+    "format": "prettier --write src test README.md package.json styles.css esbuild.config.mjs",
+    "format:check": "prettier --check src test README.md package.json styles.css esbuild.config.mjs"
   },
   "dependencies": {
     "obsidian-path-matcher": "file:../obsidian-path-matcher"
