@@ -17,10 +17,6 @@ export default class FolderTemplatesPlugin extends Plugin {
     this.registerCommands();
 
     this.app.workspace.onLayoutReady(() => {
-      if (!this.settings.automatic) {
-        return;
-      }
-
       this.registerEvent(
         this.app.vault.on("create", (file) => {
           if (!(file instanceof TFile)) {
@@ -142,7 +138,7 @@ export default class FolderTemplatesPlugin extends Plugin {
       return;
     }
 
-    if (!this.settings.automatic) {
+    if (!this.settings.automatic || !this.settings.enabled) {
       return;
     }
 
