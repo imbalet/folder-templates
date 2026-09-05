@@ -13,6 +13,7 @@ import {
 } from "./operations";
 
 import { FolderTemplatesSettingTab } from "./settings";
+import { filterFilesInFolder } from "./path-utils";
 
 export default class FolderTemplatesPlugin extends Plugin {
   settings: FolderTemplatesSettings = DEFAULT_SETTINGS;
@@ -181,12 +182,10 @@ export default class FolderTemplatesPlugin extends Plugin {
   }
 
   private async previewFolder(folderPath: string): Promise<void> {
-    const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, "");
-    const prefix = normalizedFolder ? `${normalizedFolder}/` : "";
-
-    const files = this.app.vault
-      .getMarkdownFiles()
-      .filter((file) => file.path.startsWith(prefix));
+    const files = filterFilesInFolder(
+      this.app.vault.getMarkdownFiles(),
+      folderPath,
+    );
 
     await this.previewFiles(files);
   }

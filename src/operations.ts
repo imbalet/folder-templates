@@ -1,8 +1,9 @@
-import { App, Notice, TFile } from "obsidian";
+import { App, TFile } from "obsidian";
 
 import { TemplateRuleEngine } from "./rule-engine";
 
 import { TemplateEngine } from "./template-engine";
+import { filterFilesInFolder } from "./path-utils";
 
 import type { FolderTemplatesSettings } from "./types";
 
@@ -211,12 +212,10 @@ export class TemplateOperations {
   }
 
   async applyToFolder(folderPath: string): Promise<ApplyResult[]> {
-    const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, "");
-    const prefix = normalizedFolder ? `${normalizedFolder}/` : "";
-
-    const files = this.app.vault
-      .getMarkdownFiles()
-      .filter((file) => file.path.startsWith(prefix));
+    const files = filterFilesInFolder(
+      this.app.vault.getMarkdownFiles(),
+      folderPath,
+    );
 
     return this.applyToFiles(files);
   }
