@@ -1,6 +1,10 @@
 import { App, MarkdownView, Modal, Notice, Plugin, TFile } from "obsidian";
 
-import { DEFAULT_SETTINGS, type FolderTemplatesSettings } from "./types";
+import {
+  DEFAULT_SETTINGS,
+  normalizeSettings,
+  type FolderTemplatesSettings,
+} from "./types";
 
 import {
   TemplateOperations,
@@ -35,12 +39,7 @@ export default class FolderTemplatesPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     const data = await this.loadData();
-
-    this.settings = {
-      ...DEFAULT_SETTINGS,
-      ...data,
-      rules: Array.isArray(data?.rules) ? data.rules : [],
-    };
+    this.settings = normalizeSettings(data);
   }
 
   async saveSettings(): Promise<void> {
