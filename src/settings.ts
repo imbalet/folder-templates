@@ -91,6 +91,30 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Date format")
+      .setDesc("Default Moment.js format used by {{date}}.")
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.dateFormat)
+          .onChange(async (value) => {
+            this.plugin.settings.dateFormat = value || "YYYY-MM-DD";
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Time format")
+      .setDesc("Default Moment.js format used by {{time}}.")
+      .addText((text) =>
+        text
+          .setValue(this.plugin.settings.timeFormat)
+          .onChange(async (value) => {
+            this.plugin.settings.timeFormat = value || "HH:mm";
+            await this.plugin.saveSettings();
+          }),
+      );
   }
 
   private renderRules(containerEl: HTMLElement): void {

@@ -16,6 +16,8 @@ export interface FolderTemplatesSettings {
   automatic: boolean;
   applyMode: ApplyMode;
   skipNonEmptyFiles: boolean;
+  dateFormat: string;
+  timeFormat: string;
   rules: TemplateRule[];
 }
 
@@ -24,5 +26,7 @@ export const DEFAULT_SETTINGS: FolderTemplatesSettings = {
   automatic: true,
   applyMode: "first",
   skipNonEmptyFiles: true,
+  dateFormat: "YYYY-MM-DD",
+  timeFormat: "HH:mm",
   rules: [],
 };

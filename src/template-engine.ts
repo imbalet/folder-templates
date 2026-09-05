@@ -1,7 +1,15 @@
-import { App, TFile } from "obsidian";
+import { App, moment, TFile } from "obsidian";
+
+import type { FolderTemplatesSettings } from "./types";
 
 export class TemplateEngine {
-  constructor(private readonly app: App) {}
+  constructor(
+    private readonly app: App,
+    private readonly settings: Pick<
+      FolderTemplatesSettings,
+      "dateFormat" | "timeFormat"
+    >,
+  ) {}
 
   async loadTemplate(path: string): Promise<string> {
     const normalized = path.replace(/\\/g, "/");
@@ -15,52 +23,28 @@ export class TemplateEngine {
     return this.app.vault.read(file);
   }
 
-  async apply(target: TFile, templatePath: string): Promise<void> {
-    const template = await this.loadTemplate(templatePath);
-
-    await this.app.vault.process(target, (content) => {
-      return this.renderTemplate(template, target, content);
-    });
-  }
-
-  private renderTemplate(
+  render(
     template: string,
     target: TFile,
-    currentContent: string,
+    now = new Date(),
   ): string {
-    const now = new Date();
+    return template.replace(
+      /\{\{(title|date|time)(?::([^}]+))?\}\}/g,
+      (_, variable: string, format?: string) => {
+        if (variable === "title") {
+          return target.basename;
+        }
 
-    const title = target.basename;
+        const defaultFormat =
+          variable === "date"
+            ? this.settings.dateFormat
+            : this.settings.timeFormat;
 
-    const date = this.formatDate(now);
-
-    const time = this.formatTime(now);
-
-    let result = template
-      .replace(/\{\{title\}\}/g, title)
-      .replace(/\{\{date\}\}/g, date)
-      .replace(/\{\{time\}\}/g, time);
-
-    /*
-     * We intentionally do not erase the target
-     * content here.
-     *
-     * Template application happens only when the
-     * operation decides that the file is safe to modify.
-     */
-
-    if (currentContent.length > 0) {
-      return result + "\n" + currentContent;
-    }
-
-    return result;
+        return (moment as unknown as (value: Date) => { format: (value: string) => string })(
+          now,
+        ).format(format || defaultFormat);
+      },
+    );
   }
 
-  private formatDate(date: Date): string {
-    return date.toISOString().slice(0, 10);
-  }
-
-  private formatTime(date: Date): string {
-    return date.toTimeString().slice(0, 5);
-  }
 }

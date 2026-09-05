@@ -22,7 +22,7 @@ export class TemplateOperations {
     private readonly app: App,
     private readonly settings: FolderTemplatesSettings,
   ) {
-    this.templateEngine = new TemplateEngine(app);
+    this.templateEngine = new TemplateEngine(app, settings);
   }
 
   private createRuleEngine(): TemplateRuleEngine {
