@@ -10,7 +10,7 @@ export interface ResolvedTemplateRule {
 export class TemplateRuleEngine {
   private matcher: RuleMatcher<TemplateRule>;
 
-  constructor(private readonly rules: TemplateRule[]) {
+  constructor(rules: TemplateRule[]) {
     this.matcher = new RuleMatcher(
       rules
         .filter((rule) => rule.enabled)
