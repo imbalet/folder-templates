@@ -5,6 +5,7 @@ import {
   Setting,
   TextComponent,
   ToggleComponent,
+  type SettingDefinitionItem,
 } from "obsidian";
 
 import { matchPath, substitute } from "obsidian-path-matcher";
@@ -21,15 +22,33 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        type: "group",
+        heading: "Folder Templates",
+        items: [
+          {
+            name: "Folder Templates settings",
+            desc: "Configure automatic template rules.",
+            render: (setting) => {
+              setting.settingEl.empty();
+              this.renderGeneralSettings(setting.settingEl);
+              this.renderRules(setting.settingEl);
+            },
+          },
+        ],
+      },
+    ];
+  }
+
   display(): void {
     const { containerEl } = this;
 
     this.captureOpenRules();
     containerEl.empty();
 
-    containerEl.createEl("h2", {
-      text: "Folder Templates",
-    });
+    new Setting(containerEl).setName("Folder Templates").setHeading();
 
     this.renderGeneralSettings(containerEl);
     this.renderRules(containerEl);
@@ -56,9 +75,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
   }
 
   private renderGeneralSettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", {
-      text: "General",
-    });
+    new Setting(containerEl).setName("General").setHeading();
 
     new Setting(containerEl)
       .setName("Enable plugin")
@@ -140,9 +157,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
   }
 
   private renderRules(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", {
-      text: "Rules",
-    });
+    new Setting(containerEl).setName("Rules").setHeading();
 
     containerEl.createEl("p", {
       text: "Rules are checked from top to bottom.",
@@ -291,7 +306,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
       .addButton((button) =>
         button
           .setButtonText("Delete")
-          .setWarning()
+          .setDestructive()
           .onClick(async () => {
             this.plugin.settings.rules = this.plugin.settings.rules.filter(
               (item) => item.id !== rule.id,

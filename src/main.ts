@@ -39,7 +39,7 @@ export default class FolderTemplatesPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = await this.loadData();
+    const data: unknown = await this.loadData();
     this.settings = normalizeSettings(data);
   }
 
