@@ -1,20 +1,11 @@
-import {
-  App,
-  PluginSettingTab,
-  Setting,
-} from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 
 import type FolderTemplatesPlugin from "./main";
 
-export class FolderTemplatesSettingTab
-  extends PluginSettingTab {
-
+export class FolderTemplatesSettingTab extends PluginSettingTab {
   plugin: FolderTemplatesPlugin;
 
-  constructor(
-    app: App,
-    plugin: FolderTemplatesPlugin,
-  ) {
+  constructor(app: App, plugin: FolderTemplatesPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -30,17 +21,12 @@ export class FolderTemplatesSettingTab
 
     new Setting(containerEl)
       .setName("Enable plugin")
-      .setDesc(
-        "Enable or disable template processing.",
-      )
+      .setDesc("Enable or disable template processing.")
       .addToggle((toggle) =>
         toggle
-          .setValue(
-            this.plugin.settings.enabled,
-          )
+          .setValue(this.plugin.settings.enabled)
           .onChange(async (value) => {
-            this.plugin.settings.enabled =
-              value;
+            this.plugin.settings.enabled = value;
 
             await this.plugin.saveSettings();
           }),
@@ -53,12 +39,9 @@ export class FolderTemplatesSettingTab
       )
       .addToggle((toggle) =>
         toggle
-          .setValue(
-            this.plugin.settings.automatic,
-          )
+          .setValue(this.plugin.settings.automatic)
           .onChange(async (value) => {
-            this.plugin.settings.automatic =
-              value;
+            this.plugin.settings.automatic = value;
 
             await this.plugin.saveSettings();
           }),
@@ -71,22 +54,11 @@ export class FolderTemplatesSettingTab
       )
       .addDropdown((dropdown) =>
         dropdown
-          .addOption(
-            "first",
-            "First matching rule",
-          )
-          .addOption(
-            "all",
-            "All matching rules",
-          )
-          .setValue(
-            this.plugin.settings.applyMode,
-          )
+          .addOption("first", "First matching rule")
+          .addOption("all", "All matching rules")
+          .setValue(this.plugin.settings.applyMode)
           .onChange(async (value) => {
-            this.plugin.settings.applyMode =
-              value === "all"
-                ? "all"
-                : "first";
+            this.plugin.settings.applyMode = value === "all" ? "all" : "first";
 
             await this.plugin.saveSettings();
           }),
@@ -99,130 +71,99 @@ export class FolderTemplatesSettingTab
       )
       .addToggle((toggle) =>
         toggle
-          .setValue(
-            this.plugin.settings
-              .skipNonEmptyFiles,
-          )
+          .setValue(this.plugin.settings.skipNonEmptyFiles)
           .onChange(async (value) => {
-            this.plugin.settings
-              .skipNonEmptyFiles = value;
+            this.plugin.settings.skipNonEmptyFiles = value;
 
             await this.plugin.saveSettings();
           }),
       );
-
 
     containerEl.createEl("h3", {
       text: "Rules",
     });
 
-    if (
-      this.plugin.settings.rules.length === 0
-    ) {
+    if (this.plugin.settings.rules.length === 0) {
       containerEl.createEl("p", {
         text: "No rules configured.",
       });
     }
 
-    for (
-      const rule of this.plugin.settings.rules
-    ) {
-      const ruleContainer =
-        containerEl.createDiv({
-          cls: "folder-templates-rule",
-        });
+    for (const rule of this.plugin.settings.rules) {
+      const ruleContainer = containerEl.createDiv({
+        cls: "folder-templates-rule",
+      });
 
-      new Setting(ruleContainer)
-        .setName(rule.id)
-        .addToggle((toggle) =>
-          toggle
-            .setValue(rule.enabled)
-            .onChange(async (value) => {
-              rule.enabled = value;
-              await this.plugin.saveSettings();
-            }),
-        );
+      new Setting(ruleContainer).setName(rule.id).addToggle((toggle) =>
+        toggle.setValue(rule.enabled).onChange(async (value) => {
+          rule.enabled = value;
+          await this.plugin.saveSettings();
+        }),
+      );
 
-      new Setting(ruleContainer)
-        .setName("Pattern")
-        .addText((text) =>
-          text
-            .setPlaceholder(
-              "^subjects/(?<subject>[^/]+)/notes/",
-            )
-            .setValue(rule.pattern)
-            .onChange(async (value) => {
-              rule.pattern = value;
-              await this.plugin.saveSettings();
-            }),
-        );
+      new Setting(ruleContainer).setName("Pattern").addText((text) =>
+        text
+          .setPlaceholder("^subjects/(?<subject>[^/]+)/notes/")
+          .setValue(rule.pattern)
+          .onChange(async (value) => {
+            rule.pattern = value;
+            await this.plugin.saveSettings();
+          }),
+      );
 
-      new Setting(ruleContainer)
-        .setName("Mode")
-        .addDropdown((dropdown) =>
-          dropdown
-            .addOption("regex", "Regex")
-            .addOption("glob", "Glob")
-            .setValue(rule.mode)
-            .onChange(async (value) => {
-              rule.mode =
-                value === "glob"
-                  ? "glob"
-                  : "regex";
+      new Setting(ruleContainer).setName("Mode").addDropdown((dropdown) =>
+        dropdown
+          .addOption("regex", "Regex")
+          .addOption("glob", "Glob")
+          .setValue(rule.mode)
+          .onChange(async (value) => {
+            rule.mode = value === "glob" ? "glob" : "regex";
 
-              await this.plugin.saveSettings();
-            }),
-        );
+            await this.plugin.saveSettings();
+          }),
+      );
 
-      new Setting(ruleContainer)
-        .setName("Template")
-        .addText((text) =>
-          text
-            .setPlaceholder(
-              "templates/note.md",
-            )
-            .setValue(rule.template)
-            .onChange(async (value) => {
-              rule.template = value;
-              await this.plugin.saveSettings();
-            }),
-        );
+      new Setting(ruleContainer).setName("Template").addText((text) =>
+        text
+          .setPlaceholder("templates/note.md")
+          .setValue(rule.template)
+          .onChange(async (value) => {
+            rule.template = value;
+            await this.plugin.saveSettings();
+          }),
+      );
 
-      new Setting(ruleContainer)
-        .addButton((button) =>
-          button
-            .setButtonText("Delete")
-            .setWarning()
-            .onClick(async () => {
-              this.plugin.settings.rules =
-                this.plugin.settings.rules.filter(
-                  (item) =>
-                    item.id !== rule.id,
-                );
-
-              await this.plugin.saveSettings();
-              this.display();
-            }),
-        );
-    }
-
-    new Setting(containerEl)
-      .addButton((button) =>
+      new Setting(ruleContainer).addButton((button) =>
         button
-          .setButtonText("Add rule")
-          .setCta()
+          .setButtonText("Delete")
+          .setWarning()
           .onClick(async () => {
-            this.plugin.settings.rules.push({
-              id: crypto.randomUUID(),
-              enabled: true,
-              pattern: "^notes/",
-              mode: "regex",
-              template: "templates/note.md",
-            });
+            this.plugin.settings.rules = this.plugin.settings.rules.filter(
+              (item) => item.id !== rule.id,
+            );
 
             await this.plugin.saveSettings();
             this.display();
           }),
       );
+    }
+
+    new Setting(containerEl).addButton((button) =>
+      button
+        .setButtonText("Add rule")
+        .setCta()
+        .onClick(async () => {
+          this.plugin.settings.rules.push({
+            id: crypto.randomUUID(),
+            enabled: true,
+            pattern: "^notes/",
+            mode: "regex",
+            template: "templates/note.md",
+          });
+
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+    );
   }
 }

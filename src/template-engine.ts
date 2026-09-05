@@ -1,46 +1,26 @@
-import {
-  App,
-  TFile,
-} from "obsidian";
+import { App, TFile } from "obsidian";
 
 export class TemplateEngine {
-  constructor(
-    private readonly app: App,
-  ) { }
+  constructor(private readonly app: App) {}
 
   async loadTemplate(path: string): Promise<string> {
-    const normalized =
-      path.replace(/\\/g, "/");
+    const normalized = path.replace(/\\/g, "/");
 
-    const file =
-      this.app.vault.getAbstractFileByPath(normalized);
+    const file = this.app.vault.getAbstractFileByPath(normalized);
 
     if (!(file instanceof TFile)) {
-      throw new Error(
-        `Template file not found: ${normalized}`,
-      );
+      throw new Error(`Template file not found: ${normalized}`);
     }
 
     return this.app.vault.read(file);
   }
 
-  async apply(
-    target: TFile,
-    templatePath: string,
-  ): Promise<void> {
-    const template =
-      await this.loadTemplate(templatePath);
+  async apply(target: TFile, templatePath: string): Promise<void> {
+    const template = await this.loadTemplate(templatePath);
 
-    await this.app.vault.process(
-      target,
-      (content) => {
-        return this.renderTemplate(
-          template,
-          target,
-          content,
-        );
-      },
-    );
+    await this.app.vault.process(target, (content) => {
+      return this.renderTemplate(template, target, content);
+    });
   }
 
   private renderTemplate(
@@ -50,14 +30,11 @@ export class TemplateEngine {
   ): string {
     const now = new Date();
 
-    const title =
-      target.basename;
+    const title = target.basename;
 
-    const date =
-      this.formatDate(now);
+    const date = this.formatDate(now);
 
-    const time =
-      this.formatTime(now);
+    const time = this.formatTime(now);
 
     let result = template
       .replace(/\{\{title\}\}/g, title)

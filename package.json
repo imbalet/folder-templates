@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "format": "prettier --write src README.md",
+    "format:check": "prettier --check src README.md"
   },
   "dependencies": {
     "obsidian-path-matcher": "file:../obsidian-path-matcher"
@@ -15,7 +17,8 @@
     "@types/node": "^22.0.0",
     "esbuild": "^0.25.0",
     "obsidian": "^1.8.7",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "prettier": "^3.9.6"
   },
   "allowScripts": {
     "esbuild": true

@@ -1,40 +1,18 @@
-import {
-  MarkdownView,
-  Notice,
-  Plugin,
-  TFile,
-} from "obsidian";
+import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
 
-import {
-  DEFAULT_SETTINGS,
-  type FolderTemplatesSettings,
-} from "./types";
+import { DEFAULT_SETTINGS, type FolderTemplatesSettings } from "./types";
 
-import {
-  TemplateOperations,
-  summarizeResults,
-} from "./operations";
+import { TemplateOperations, summarizeResults } from "./operations";
 
-import {
-  FolderTemplatesSettingTab,
-} from "./settings";
+import { FolderTemplatesSettingTab } from "./settings";
 
-export default class FolderTemplatesPlugin
-  extends Plugin {
-
-  settings:
-    FolderTemplatesSettings =
-    DEFAULT_SETTINGS;
+export default class FolderTemplatesPlugin extends Plugin {
+  settings: FolderTemplatesSettings = DEFAULT_SETTINGS;
 
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    this.addSettingTab(
-      new FolderTemplatesSettingTab(
-        this.app,
-        this,
-      ),
-    );
+    this.addSettingTab(new FolderTemplatesSettingTab(this.app, this));
 
     this.registerCommands();
 
@@ -44,37 +22,29 @@ export default class FolderTemplatesPlugin
       }
 
       this.registerEvent(
-        this.app.vault.on(
-          "create",
-          (file) => {
-            if (!(file instanceof TFile)) {
-              return;
-            }
+        this.app.vault.on("create", (file) => {
+          if (!(file instanceof TFile)) {
+            return;
+          }
 
-            void this.handleCreate(file);
-          },
-        ),
+          void this.handleCreate(file);
+        }),
       );
     });
   }
 
   async loadSettings(): Promise<void> {
-    const data =
-      await this.loadData();
+    const data = await this.loadData();
 
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...data,
-      rules: Array.isArray(data?.rules)
-        ? data.rules
-        : [],
+      rules: Array.isArray(data?.rules) ? data.rules : [],
     };
   }
 
   async saveSettings(): Promise<void> {
-    await this.saveData(
-      this.settings,
-    );
+    await this.saveData(this.settings);
   }
 
   private registerCommands(): void {
@@ -82,8 +52,7 @@ export default class FolderTemplatesPlugin
       id: "apply-current-file",
       name: "Apply to current file",
       checkCallback: (checking) => {
-        const file =
-          this.getActiveMarkdownFile();
+        const file = this.getActiveMarkdownFile();
 
         if (!file) {
           return false;
@@ -101,17 +70,14 @@ export default class FolderTemplatesPlugin
       id: "apply-current-folder",
       name: "Apply to current folder",
       checkCallback: (checking) => {
-        const file =
-          this.getActiveMarkdownFile();
+        const file = this.getActiveMarkdownFile();
 
         if (!file) {
           return false;
         }
 
         if (!checking) {
-          void this.applyToFolder(
-            file.parent?.path ?? "",
-          );
+          void this.applyToFolder(file.parent?.path ?? "");
         }
 
         return true;
@@ -130,8 +96,7 @@ export default class FolderTemplatesPlugin
       id: "preview-current-file",
       name: "Preview current file",
       checkCallback: (checking) => {
-        const file =
-          this.getActiveMarkdownFile();
+        const file = this.getActiveMarkdownFile();
 
         if (!file) {
           return false;
@@ -149,17 +114,14 @@ export default class FolderTemplatesPlugin
       id: "preview-current-folder",
       name: "Preview current folder",
       checkCallback: (checking) => {
-        const file =
-          this.getActiveMarkdownFile();
+        const file = this.getActiveMarkdownFile();
 
         if (!file) {
           return false;
         }
 
         if (!checking) {
-          void this.previewFolder(
-            file.parent?.path ?? "",
-          );
+          void this.previewFolder(file.parent?.path ?? "");
         }
 
         return true;
@@ -170,16 +132,12 @@ export default class FolderTemplatesPlugin
       id: "preview-entire-vault",
       name: "Preview entire vault",
       callback: () => {
-        void this.previewFiles(
-          this.app.vault.getMarkdownFiles(),
-        );
+        void this.previewFiles(this.app.vault.getMarkdownFiles());
       },
     });
   }
 
-  private async handleCreate(
-    file: TFile,
-  ): Promise<void> {
+  private async handleCreate(file: TFile): Promise<void> {
     if (!this.settings.enabled) {
       return;
     }
@@ -195,96 +153,51 @@ export default class FolderTemplatesPlugin
     await this.applyToFile(file);
   }
 
-  private async applyToFile(
-    file: TFile,
-  ): Promise<void> {
-    const operations =
-      new TemplateOperations(
-        this.app,
-        this.settings,
-      );
+  private async applyToFile(file: TFile): Promise<void> {
+    const operations = new TemplateOperations(this.app, this.settings);
 
-    const result =
-      await operations.applyToFile(file);
+    const result = await operations.applyToFile(file);
 
     if (result.applied) {
-      new Notice(
-        `Template applied: ${file.path}`,
-      );
+      new Notice(`Template applied: ${file.path}`);
     } else if (result.error) {
-      new Notice(
-        `Template error: ${result.error}`,
-      );
+      new Notice(`Template error: ${result.error}`);
     }
   }
 
-  private async applyToFolder(
-    folderPath: string,
-  ): Promise<void> {
-    const operations =
-      new TemplateOperations(
-        this.app,
-        this.settings,
-      );
+  private async applyToFolder(folderPath: string): Promise<void> {
+    const operations = new TemplateOperations(this.app, this.settings);
 
-    const results =
-      await operations.applyToFolder(
-        folderPath,
-      );
+    const results = await operations.applyToFolder(folderPath);
 
-    new Notice(
-      summarizeResults(results),
-    );
+    new Notice(summarizeResults(results));
   }
 
   private async applyToVault(): Promise<void> {
-    const operations =
-      new TemplateOperations(
-        this.app,
-        this.settings,
-      );
+    const operations = new TemplateOperations(this.app, this.settings);
 
-    const results =
-      await operations.applyToVault();
+    const results = await operations.applyToVault();
 
-    new Notice(
-      summarizeResults(results),
-    );
+    new Notice(summarizeResults(results));
   }
 
-  private async previewFolder(
-    folderPath: string,
-  ): Promise<void> {
-    const prefix =
-      folderPath.replace(/\/+$/, "") + "/";
+  private async previewFolder(folderPath: string): Promise<void> {
+    const prefix = folderPath.replace(/\/+$/, "") + "/";
 
-    const files =
-      this.app.vault
-        .getMarkdownFiles()
-        .filter(
-          (file) =>
-            file.path.startsWith(prefix),
-        );
+    const files = this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => file.path.startsWith(prefix));
 
     await this.previewFiles(files);
   }
 
-  private async previewFiles(
-    files: TFile[],
-  ): Promise<void> {
-    const operations =
-      new TemplateOperations(
-        this.app,
-        this.settings,
-      );
+  private async previewFiles(files: TFile[]): Promise<void> {
+    const operations = new TemplateOperations(this.app, this.settings);
 
-    const results =
-      files.map((file) => ({
-        file,
-        matches:
-          operations
-            .constructor,
-      }));
+    const results = files.map((file) => ({
+      file,
+      matches: operations.constructor,
+    }));
 
     /*
      * UI for preview will be added in the
@@ -292,22 +205,13 @@ export default class FolderTemplatesPlugin
      * as the operation entry point.
      */
 
-    console.log(
-      "Folder Templates preview",
-      results,
-    );
+    console.log("Folder Templates preview", results);
 
-    new Notice(
-      `Preview: ${files.length} file(s)`,
-    );
+    new Notice(`Preview: ${files.length} file(s)`);
   }
 
-  private getActiveMarkdownFile():
-    TFile | null {
-    const view =
-      this.app.workspace.getActiveViewOfType(
-        MarkdownView,
-      );
+  private getActiveMarkdownFile(): TFile | null {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 
     return view?.file ?? null;
   }

@@ -1,8 +1,4 @@
-import {
-  RuleMatcher,
-  substitute,
-  type RuleMatch,
-} from "obsidian-path-matcher";
+import { RuleMatcher, substitute, type RuleMatch } from "obsidian-path-matcher";
 
 import type { TemplateRule } from "./types";
 
@@ -14,9 +10,7 @@ export interface ResolvedTemplateRule {
 export class TemplateRuleEngine {
   private matcher: RuleMatcher<TemplateRule>;
 
-  constructor(
-    private readonly rules: TemplateRule[],
-  ) {
+  constructor(private readonly rules: TemplateRule[]) {
     this.matcher = new RuleMatcher(
       rules
         .filter((rule) => rule.enabled)
@@ -37,13 +31,7 @@ export class TemplateRuleEngine {
     }));
   }
 
-  resolveTemplatePath(
-    template: string,
-    match: ResolvedTemplateRule,
-  ): string {
-    return substitute(
-      template,
-      match.match.match,
-    );
+  resolveTemplatePath(template: string, match: ResolvedTemplateRule): string {
+    return substitute(template, match.match.match);
   }
 }
