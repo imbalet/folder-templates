@@ -1,5 +1,6 @@
 import { App, moment, TFile } from "obsidian";
 
+import { renderTemplate } from "./template-renderer";
 import type { FolderTemplatesSettings } from "./types";
 
 export class TemplateEngine {
@@ -23,28 +24,18 @@ export class TemplateEngine {
     return this.app.vault.read(file);
   }
 
-  render(
-    template: string,
-    target: TFile,
-    now = new Date(),
-  ): string {
-    return template.replace(
-      /\{\{(title|date|time)(?::([^}]+))?\}\}/g,
-      (_, variable: string, format?: string) => {
-        if (variable === "title") {
-          return target.basename;
-        }
-
-        const defaultFormat =
-          variable === "date"
-            ? this.settings.dateFormat
-            : this.settings.timeFormat;
-
-        return (moment as unknown as (value: Date) => { format: (value: string) => string })(
-          now,
-        ).format(format || defaultFormat);
-      },
+  render(template: string, target: TFile, now = new Date()): string {
+    return renderTemplate(
+      template,
+      target.basename,
+      this.settings,
+      now,
+      (date, format) =>
+        (
+          moment as unknown as (value: Date) => {
+            format: (value: string) => string;
+          }
+        )(date).format(format),
     );
   }
-
 }
