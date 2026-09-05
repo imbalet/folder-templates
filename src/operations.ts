@@ -39,26 +39,66 @@ export class TemplateOperations {
       };
     }
 
-    const ruleEngine = this.createRuleEngine();
-
-    const matches = ruleEngine.match(file.path);
-
-    if (matches.length === 0) {
+    if (!this.settings.enabled) {
       return {
         file,
         applied: false,
         skipped: true,
-        reason: "no-rule",
+        reason: "disabled",
       };
     }
 
-    const selected =
-      this.settings.applyMode === "first" ? [matches[0]] : matches;
+    try {
+      const ruleEngine = this.createRuleEngine();
+      const matches = ruleEngine.match(file.path);
 
-    if (this.settings.skipNonEmptyFiles) {
-      const content = await this.app.vault.read(file);
+      if (matches.length === 0) {
+        return {
+          file,
+          applied: false,
+          skipped: true,
+          reason: "no-rule",
+        };
+      }
 
-      if (content.trim().length > 0) {
+      const selected =
+        this.settings.applyMode === "first" ? [matches[0]] : matches;
+
+      const templates = await Promise.all(
+        selected.map(async (resolved) => {
+          const templatePath = ruleEngine.resolveTemplatePath(
+            resolved.rule.template,
+            resolved,
+          );
+
+          return {
+            path: templatePath,
+            content: await this.templateEngine.loadTemplate(templatePath),
+          };
+        }),
+      );
+
+      let skipped = false;
+      let applied = false;
+
+      await this.app.vault.process(file, (current) => {
+        if (this.settings.skipNonEmptyFiles && current.trim().length > 0) {
+          skipped = true;
+          return current;
+        }
+
+        const now = new Date();
+        const rendered = templates.map(({ content }) =>
+          this.templateEngine.render(content, file, now),
+        );
+        const prefix = rendered.join("\n");
+
+        applied = true;
+
+        return current.length > 0 ? `${prefix}\n${current}` : prefix;
+      });
+
+      if (skipped) {
         return {
           file,
           applied: false,
@@ -66,39 +106,12 @@ export class TemplateOperations {
           reason: "non-empty",
         };
       }
-    }
-
-    try {
-      let first = true;
-
-      for (const resolved of selected) {
-        const templatePath = ruleEngine.resolveTemplatePath(
-          resolved.rule.template,
-          resolved,
-        );
-
-        const content = await this.templateEngine.loadTemplate(templatePath);
-
-        await this.app.vault.process(file, (current) => {
-          let result = current;
-
-          if (!first) {
-            result += "\n";
-          }
-
-          result += content;
-
-          first = false;
-
-          return result;
-        });
-      }
 
       return {
         file,
-        applied: true,
+        applied,
         skipped: false,
-        template: selected.map((x) => x.rule.template).join(", "),
+        template: templates.map((template) => template.path).join(", "),
       };
     } catch (error) {
       return {
@@ -125,7 +138,8 @@ export class TemplateOperations {
   }
 
   async applyToFolder(folderPath: string): Promise<ApplyResult[]> {
-    const prefix = folderPath.replace(/\/+$/, "") + "/";
+    const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, "");
+    const prefix = normalizedFolder ? `${normalizedFolder}/` : "";
 
     const files = this.app.vault
       .getMarkdownFiles()
