@@ -404,7 +404,7 @@ class RuleTestModal extends Modal {
         });
 
         for (const [name, value] of namedGroups) {
-          this.renderValue(named, `{${name} } `, value);
+          this.renderValue(named, `{${name}}`, value);
         }
       }
 

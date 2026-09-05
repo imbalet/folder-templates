@@ -1,39 +1,96 @@
 # Folder Templates
 
-Automatically apply templates to Markdown files based on their vault-relative paths.
+Folder Templates automatically inserts template content into Markdown notes
+based on their vault-relative paths. It can run when a new note is created or
+be invoked manually for an existing note, folder, or the entire vault.
 
-## Rules
+## Settings and rules
 
-Rules are evaluated from top to bottom. A rule contains:
+The plugin has these global settings:
 
-- `Pattern` — a regular expression or glob matched against the full file path;
-- `Mode` — `Regex` or `Glob`;
-- `Template` — a vault-relative template path, optionally using capture substitutions.
+- `Enable plugin` turns all automatic and manual processing on or off;
+- `Apply automatically` applies a matching template when a Markdown file is
+  created;
+- `Apply mode` selects the first matching rule or all matching rules;
+- `Skip non-empty files` prevents changes to notes that already contain
+  content;
+- date and time formats configure `{{date}}` and `{{time}}` variables.
 
-Numeric captures use `{0}`, `{1}`, and so on. `{0}` is the full match. Named regex captures use their name, for example `{subject}`.
+Each rule contains a name, an enabled switch, a pattern, a matching mode, and
+a vault-relative template path. Rules are checked from top to bottom. When
+`Apply mode` is `All matching rules`, matching templates are inserted in rule
+order.
 
-Example:
+### Regex
+
+Regex patterns use JavaScript regular expression syntax. Named and positional
+capture groups can be used in the template path:
 
 ```text
-Pattern: ^subjects/(?<subject>[^/]+)/notes/
+Pattern: ^courses/(?<course>[^/]+)/(?<topic>[^/]+)/notes/
 Mode: Regex
-Template: templates/{subject}.md
+Template: templates/{course}/{topic}.md
 ```
 
-## Template variables
+For `courses/linux/networking/notes/firewall.md`, the resolved template path
+is:
 
-Template files support the same public variables as Obsidian Core Templates:
+```text
+templates/linux/networking.md
+```
 
-- `{{title}}` — target note title;
-- `{{date}}` — current date;
-- `{{time}}` — current time;
-- `{{date:DD.MM.YYYY}}` and `{{time:HH:mm:ss}}` — explicit Moment.js formats.
+`{0}` is the full match. `{1}`, `{2}`, and so on refer to positional capture
+groups. `{course}` and `{topic}` refer to named groups.
 
-Default date and time formats can be changed in the plugin settings. An explicit format in a variable takes precedence over the defaults.
+### Glob
 
-By default, non-empty files are skipped. When applying a template to a non-empty file is enabled, the rendered template is prepended to the existing content.
+Glob patterns support:
 
-## Commands
+- `*` — any characters except `/`;
+- `**` — any characters, including `/`;
+- `?` — exactly one character except `/`.
 
-- Apply to current file, folder, or entire vault;
-- Preview current file, folder, or entire vault without modifying files.
+Examples:
+
+```text
+Pattern: projects/*/notes/*.md
+Mode: Glob
+Template: templates/project-note.md
+```
+
+This matches a note directly inside `projects/<project>/notes/`. A pattern
+such as `projects/**/README.md` also matches through nested folders.
+
+## Template content
+
+Template files support these variables:
+
+- `{{title}}` — the target note's basename;
+- `{{date}}` — the current date;
+- `{{time}}` — the current time;
+- `{{date:DD.MM.YYYY}}` and `{{time:HH:mm:ss}}` — explicit formats.
+
+For example:
+
+```markdown
+---
+created: { { date } }
+course: { { title } }
+---
+
+# {{title}}
+```
+
+Non-empty files are skipped by default. If that option is disabled, rendered
+template content is prepended to the existing note content.
+
+## Commands and preview
+
+The command palette provides commands to apply templates to the current file,
+current folder, or entire vault. Matching can also be previewed for each of
+these scopes without changing files.
+
+Preview shows matching rules, resolved template paths, and the action that
+would be taken. The `Test` button on a rule accepts a vault-relative path and
+shows whether it matches, its captures, and the resolved template path
+without changing a note.
