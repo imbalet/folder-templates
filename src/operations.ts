@@ -65,16 +65,24 @@ export class TemplateOperations {
       const selected =
         this.settings.applyMode === "first" ? [matches[0]] : matches;
 
-      const templates = await Promise.all(
-        selected.map(async (resolved) => {
-          const templatePath = ruleEngine.resolveTemplatePath(
-            resolved.rule.template,
-            resolved,
-          );
+      const paths = selected.map((resolved) =>
+        ruleEngine.resolveTemplatePath(resolved.rule.template, resolved),
+      );
 
+      if (paths.some((path) => path.replace(/\\/g, "/") === file.path)) {
+        return {
+          file,
+          applied: false,
+          skipped: true,
+          reason: "template-file",
+        };
+      }
+
+      const templates = await Promise.all(
+        paths.map(async (path) => {
           return {
-            path: templatePath,
-            content: await this.templateEngine.loadTemplate(templatePath),
+            path,
+            content: await this.templateEngine.loadTemplate(path),
           };
         }),
       );
@@ -156,6 +164,16 @@ export class TemplateOperations {
       const paths = selected.map((resolved) =>
         ruleEngine.resolveTemplatePath(resolved.rule.template, resolved),
       );
+
+      if (paths.some((path) => path.replace(/\\/g, "/") === file.path)) {
+        return {
+          file,
+          applied: false,
+          skipped: true,
+          reason: "template-file",
+          template: paths.join(", "),
+        };
+      }
 
       await Promise.all(
         paths.map((path) => this.templateEngine.loadTemplate(path)),
