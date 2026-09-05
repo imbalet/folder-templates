@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Testing / Coverage output
+coverage/
+.nyc_output
+
+# Build and distribution directories
+dist/
+build/
+/main.js
+
+# IDE
+.vscode/

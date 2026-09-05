@@ -1,0 +1,23 @@
+{
+  "name": "folder-templates",
+  "version": "0.1.0",
+  "description": "Automatically apply templates to Obsidian notes based on their paths",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "obsidian-path-matcher": "file:../obsidian-path-matcher"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.8.7",
+    "typescript": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}
