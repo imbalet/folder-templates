@@ -1,8 +1,12 @@
-import { MarkdownView, Notice, Plugin, TFile } from "obsidian";
+import { App, MarkdownView, Modal, Notice, Plugin, TFile } from "obsidian";
 
 import { DEFAULT_SETTINGS, type FolderTemplatesSettings } from "./types";
 
-import { TemplateOperations, summarizeResults } from "./operations";
+import {
+  TemplateOperations,
+  summarizeResults,
+  type ApplyResult,
+} from "./operations";
 
 import { FolderTemplatesSettingTab } from "./settings";
 
@@ -178,7 +182,8 @@ export default class FolderTemplatesPlugin extends Plugin {
   }
 
   private async previewFolder(folderPath: string): Promise<void> {
-    const prefix = folderPath.replace(/\/+$/, "") + "/";
+    const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, "");
+    const prefix = normalizedFolder ? `${normalizedFolder}/` : "";
 
     const files = this.app.vault
       .getMarkdownFiles()
@@ -189,26 +194,59 @@ export default class FolderTemplatesPlugin extends Plugin {
 
   private async previewFiles(files: TFile[]): Promise<void> {
     const operations = new TemplateOperations(this.app, this.settings);
+    const results = await operations.previewToFiles(files);
 
-    const results = files.map((file) => ({
-      file,
-      matches: operations.constructor,
-    }));
-
-    /*
-     * UI for preview will be added in the
-     * next step. For now this command exists
-     * as the operation entry point.
-     */
-
-    console.log("Folder Templates preview", results);
-
-    new Notice(`Preview: ${files.length} file(s)`);
+    new PreviewModal(this.app, results).open();
   }
 
   private getActiveMarkdownFile(): TFile | null {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 
     return view?.file ?? null;
+  }
+}
+
+class PreviewModal extends Modal {
+  constructor(
+    app: App,
+    private readonly results: ApplyResult[],
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.contentEl.empty();
+    this.contentEl.createEl("h2", { text: "Folder Templates preview" });
+
+    if (this.results.length === 0) {
+      this.contentEl.createEl("p", { text: "No Markdown files found." });
+      return;
+    }
+
+    for (const result of this.results) {
+      const item = this.contentEl.createDiv({
+        cls: "folder-templates-preview-item",
+      });
+      item.createEl("h3", { text: result.file.path });
+
+      if (result.error) {
+        item.createEl("p", { text: `Error: ${result.error}` });
+        continue;
+      }
+
+      if (result.rules?.length) {
+        item.createEl("p", { text: `Rules: ${result.rules.join(", ")}` });
+      }
+
+      if (result.template) {
+        item.createEl("p", { text: `Templates: ${result.template}` });
+      }
+
+      item.createEl("p", { text: `Status: ${result.reason ?? "ready"}` });
+    }
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
   }
 }

@@ -12,6 +12,7 @@ export interface ApplyResult {
   skipped: boolean;
   reason?: string;
   template?: string;
+  rules?: string[];
   error?: string;
 }
 
@@ -131,6 +132,60 @@ export class TemplateOperations {
     }
 
     return results;
+  }
+
+  async previewToFile(file: TFile): Promise<ApplyResult> {
+    if (file.extension !== "md") {
+      return { file, applied: false, skipped: true, reason: "not-markdown" };
+    }
+
+    if (!this.settings.enabled) {
+      return { file, applied: false, skipped: true, reason: "disabled" };
+    }
+
+    try {
+      const ruleEngine = this.createRuleEngine();
+      const matches = ruleEngine.match(file.path);
+
+      if (matches.length === 0) {
+        return { file, applied: false, skipped: true, reason: "no-rule" };
+      }
+
+      const selected =
+        this.settings.applyMode === "first" ? [matches[0]] : matches;
+      const paths = selected.map((resolved) =>
+        ruleEngine.resolveTemplatePath(resolved.rule.template, resolved),
+      );
+
+      await Promise.all(
+        paths.map((path) => this.templateEngine.loadTemplate(path)),
+      );
+
+      const content = await this.app.vault.read(file);
+
+      return {
+        file,
+        applied: false,
+        skipped: this.settings.skipNonEmptyFiles && content.trim().length > 0,
+        reason:
+          this.settings.skipNonEmptyFiles && content.trim().length > 0
+            ? "non-empty"
+            : "ready",
+        template: paths.join(", "),
+        rules: selected.map((resolved) => resolved.rule.name),
+      };
+    } catch (error) {
+      return {
+        file,
+        applied: false,
+        skipped: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  async previewToFiles(files: TFile[]): Promise<ApplyResult[]> {
+    return Promise.all(files.map((file) => this.previewToFile(file)));
   }
 
   async applyToVault(): Promise<ApplyResult[]> {
