@@ -26,7 +26,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
     return [
       {
         type: "group",
-        heading: "Folder Templates",
+        heading: "Settings",
         items: [
           {
             name: "Folder Templates settings",
@@ -42,16 +42,9 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
     ];
   }
 
-  display(): void {
-    const { containerEl } = this;
-
+  private refresh(): void {
     this.captureOpenRules();
-    containerEl.empty();
-
-    new Setting(containerEl).setName("Folder Templates").setHeading();
-
-    this.renderGeneralSettings(containerEl);
-    this.renderRules(containerEl);
+    this.update();
   }
 
   private captureOpenRules(): void {
@@ -75,8 +68,6 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
   }
 
   private renderGeneralSettings(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName("General").setHeading();
-
     new Setting(containerEl)
       .setName("Enable plugin")
       .setDesc("Enable or disable Folder Templates.")
@@ -195,7 +186,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
           this.openRuleIds.add(rule.id);
 
           await this.plugin.saveSettings();
-          this.display();
+          this.refresh();
         }),
     );
   }
@@ -300,7 +291,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
           this.openRuleIds.add(copy.id);
 
           await this.plugin.saveSettings();
-          this.display();
+          this.refresh();
         }),
       )
       .addButton((button) =>
@@ -314,7 +305,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             this.openRuleIds.delete(rule.id);
 
             await this.plugin.saveSettings();
-            this.display();
+            this.refresh();
           }),
       );
     ruleContainer.addEventListener("toggle", () => {
