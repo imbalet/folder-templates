@@ -1,6 +1,16 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  Modal,
+  PluginSettingTab,
+  Setting,
+  TextComponent,
+  ToggleComponent,
+} from "obsidian";
+
+import { matchPath, substitute } from "obsidian-path-matcher";
 
 import type FolderTemplatesPlugin from "./main";
+import type { TemplateRule } from "./types";
 
 export class FolderTemplatesSettingTab extends PluginSettingTab {
   plugin: FolderTemplatesPlugin;
@@ -19,30 +29,35 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
       text: "Folder Templates",
     });
 
+    this.renderGeneralSettings(containerEl);
+    this.renderRules(containerEl);
+  }
+
+  private renderGeneralSettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", {
+      text: "General",
+    });
+
     new Setting(containerEl)
       .setName("Enable plugin")
-      .setDesc("Enable or disable template processing.")
+      .setDesc("Enable or disable Folder Templates.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.enabled)
           .onChange(async (value) => {
             this.plugin.settings.enabled = value;
-
             await this.plugin.saveSettings();
           }),
       );
 
     new Setting(containerEl)
       .setName("Apply automatically")
-      .setDesc(
-        "Automatically apply a template when a new Markdown file is created.",
-      )
+      .setDesc("Apply matching templates when a new Markdown file is created.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.automatic)
           .onChange(async (value) => {
             this.plugin.settings.automatic = value;
-
             await this.plugin.saveSettings();
           }),
       );
@@ -50,7 +65,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Apply mode")
       .setDesc(
-        "Choose whether to apply only the first matching rule or every matching rule.",
+        "Choose whether to apply the first matching rule or all matching rules.",
       )
       .addDropdown((dropdown) =>
         dropdown
@@ -66,9 +81,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Skip non-empty files")
-      .setDesc(
-        "Do not automatically apply templates to files that already contain content.",
-      )
+      .setDesc("Do not apply templates to files that already contain content.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.skipNonEmptyFiles)
@@ -78,62 +91,155 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+  }
 
+  private renderRules(containerEl: HTMLElement): void {
     containerEl.createEl("h3", {
       text: "Rules",
     });
 
+    containerEl.createEl("p", {
+      text: "Rules are checked from top to bottom.",
+      cls: "setting-item-description",
+    });
+
     if (this.plugin.settings.rules.length === 0) {
       containerEl.createEl("p", {
-        text: "No rules configured.",
+        text: "No rules configured yet.",
+        cls: "setting-item-description",
       });
     }
 
-    for (const rule of this.plugin.settings.rules) {
-      const ruleContainer = containerEl.createDiv({
-        cls: "folder-templates-rule",
-      });
+    for (const [index, rule] of this.plugin.settings.rules.entries()) {
+      this.renderRule(containerEl, rule, index);
+    }
 
-      new Setting(ruleContainer).setName(rule.id).addToggle((toggle) =>
-        toggle.setValue(rule.enabled).onChange(async (value) => {
-          rule.enabled = value;
+    new Setting(containerEl).addButton((button) =>
+      button
+        .setButtonText("Add rule")
+        .setCta()
+        .onClick(async () => {
+          const number = this.plugin.settings.rules.length + 1;
+
+          this.plugin.settings.rules.push({
+            id: crypto.randomUUID(),
+            name: `Rule ${number} `,
+            enabled: true,
+            pattern: "^notes/",
+            mode: "regex",
+            template: "templates/note.md",
+          });
+
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+    );
+  }
+
+  private renderRule(
+    containerEl: HTMLElement,
+    rule: TemplateRule,
+    index: number,
+  ): void {
+    const ruleContainer = containerEl.createEl("details", {
+      cls: "folder-templates-rule",
+    });
+
+    ruleContainer.open = true;
+
+    const header = ruleContainer.createEl("summary", {
+      cls: "folder-templates-rule-header",
+    });
+
+    const headerLeft = header.createDiv({
+      cls: "folder-templates-rule-header-left",
+    });
+
+    const collapseIcon = headerLeft.createSpan({
+      cls: "folder-templates-rule-collapse",
+      text: "▾",
+    });
+
+    const nameInput = new TextComponent(headerLeft);
+
+    nameInput.setValue(rule.name).setPlaceholder(`Rule ${index + 1}`);
+
+    nameInput.inputEl.addClass("folder-templates-rule-name");
+
+    nameInput.onChange(async (value) => {
+      rule.name = value.trim() || `Rule ${index + 1}`;
+
+      await this.plugin.saveSettings();
+    });
+
+    const enabled = new ToggleComponent(header);
+
+    enabled.setValue(rule.enabled).onChange(async (value) => {
+      rule.enabled = value;
+      await this.plugin.saveSettings();
+    });
+
+    const body = ruleContainer.createDiv({
+      cls: "folder-templates-rule-body",
+    });
+
+    // Pattern
+    new Setting(body).setName("Pattern").addText((text) =>
+      text
+        .setPlaceholder("^subjects/(?<subject>[^/]+)/notes/")
+        .setValue(rule.pattern)
+        .onChange(async (value) => {
+          rule.pattern = value;
           await this.plugin.saveSettings();
         }),
-      );
+    );
 
-      new Setting(ruleContainer).setName("Pattern").addText((text) =>
-        text
-          .setPlaceholder("^subjects/(?<subject>[^/]+)/notes/")
-          .setValue(rule.pattern)
-          .onChange(async (value) => {
-            rule.pattern = value;
-            await this.plugin.saveSettings();
-          }),
-      );
+    // Mode
+    new Setting(body).setName("Mode").addDropdown((dropdown) =>
+      dropdown
+        .addOption("regex", "Regex")
+        .addOption("glob", "Glob")
+        .setValue(rule.mode)
+        .onChange(async (value) => {
+          rule.mode = value === "glob" ? "glob" : "regex";
 
-      new Setting(ruleContainer).setName("Mode").addDropdown((dropdown) =>
-        dropdown
-          .addOption("regex", "Regex")
-          .addOption("glob", "Glob")
-          .setValue(rule.mode)
-          .onChange(async (value) => {
-            rule.mode = value === "glob" ? "glob" : "regex";
+          await this.plugin.saveSettings();
+        }),
+    );
 
-            await this.plugin.saveSettings();
-          }),
-      );
+    // Template
+    new Setting(body).setName("Template").addText((text) =>
+      text
+        .setPlaceholder("templates/note.md")
+        .setValue(rule.template)
+        .onChange(async (value) => {
+          rule.template = value;
+          await this.plugin.saveSettings();
+        }),
+    );
 
-      new Setting(ruleContainer).setName("Template").addText((text) =>
-        text
-          .setPlaceholder("templates/note.md")
-          .setValue(rule.template)
-          .onChange(async (value) => {
-            rule.template = value;
-            await this.plugin.saveSettings();
-          }),
-      );
+    // Buttons
+    new Setting(body)
+      .addButton((button) =>
+        button.setButtonText("Test").onClick(() => {
+          new RuleTestModal(this.app, rule).open();
+        }),
+      )
+      .addButton((button) =>
+        button.setButtonText("Duplicate").onClick(async () => {
+          const copy: TemplateRule = {
+            ...rule,
+            id: crypto.randomUUID(),
+            name: `${rule.name} copy`,
+          };
 
-      new Setting(ruleContainer).addButton((button) =>
+          this.plugin.settings.rules.splice(index + 1, 0, copy);
+
+          await this.plugin.saveSettings();
+          this.display();
+        }),
+      )
+      .addButton((button) =>
         button
           .setButtonText("Delete")
           .setWarning()
@@ -146,24 +252,145 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             this.display();
           }),
       );
+    ruleContainer.addEventListener("toggle", () => {
+      collapseIcon.setText(ruleContainer.open ? "▾" : "▸");
+    });
+
+    ruleContainer.open = false;
+  }
+}
+
+class RuleTestModal extends Modal {
+  private readonly rule: TemplateRule;
+
+  private pathInput!: HTMLInputElement;
+  private resultEl!: HTMLElement;
+
+  constructor(app: App, rule: TemplateRule) {
+    super(app);
+    this.rule = rule;
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+
+    contentEl.empty();
+
+    contentEl.createEl("h2", {
+      text: `Test rule: ${this.rule.name} `,
+    });
+
+    new Setting(contentEl)
+      .setName("Path")
+      .setDesc("Enter a vault-relative path to test.")
+      .addText((text) => {
+        this.pathInput = text.inputEl;
+
+        text.setPlaceholder("subjects/linux/notes/network.md").onChange(() => {
+          this.runTest();
+        });
+      });
+
+    this.resultEl = contentEl.createDiv({
+      cls: "folder-templates-test-result",
+    });
+
+    this.runTest();
+  }
+
+  private runTest(): void {
+    const path = this.pathInput.value.trim();
+
+    this.resultEl.empty();
+
+    if (!path) {
+      this.resultEl.createEl("p", {
+        text: "Enter a path to test.",
+      });
+
+      return;
     }
 
-    new Setting(containerEl).addButton((button) =>
-      button
-        .setButtonText("Add rule")
-        .setCta()
-        .onClick(async () => {
-          this.plugin.settings.rules.push({
-            id: crypto.randomUUID(),
-            enabled: true,
-            pattern: "^notes/",
-            mode: "regex",
-            template: "templates/note.md",
-          });
+    try {
+      const match = matchPath(path, this.rule.pattern, this.rule.mode);
 
-          await this.plugin.saveSettings();
-          this.display();
-        }),
-    );
+      if (!match.matched) {
+        this.resultEl.createEl("h3", {
+          text: "✗ Not matched",
+        });
+
+        this.resultEl.createEl("p", {
+          text: "The pattern does not match this path.",
+        });
+
+        return;
+      }
+
+      this.resultEl.createEl("h3", {
+        text: "✓ Matched",
+      });
+
+      this.renderValue(this.resultEl, "Full match", match.fullMatch ?? "");
+
+      if (match.groups.length > 0) {
+        const captures = this.resultEl.createDiv();
+
+        captures.createEl("strong", {
+          text: "Captures",
+        });
+
+        for (const [index, value] of match.groups.entries()) {
+          this.renderValue(captures, `{${index + 1} } `, value);
+        }
+      }
+
+      const namedGroups = Object.entries(match.namedGroups);
+
+      if (namedGroups.length > 0) {
+        const named = this.resultEl.createDiv();
+
+        named.createEl("strong", {
+          text: "Named captures",
+        });
+
+        for (const [name, value] of namedGroups) {
+          this.renderValue(named, `{${name} } `, value);
+        }
+      }
+
+      const resolvedTemplate = substitute(this.rule.template, match);
+
+      this.renderValue(this.resultEl, "Resolved template", resolvedTemplate);
+
+      const templateFile = this.app.vault.getAbstractFileByPath(
+        resolvedTemplate.replace(/\\/g, "/"),
+      );
+
+      this.renderValue(
+        this.resultEl,
+        "Template file",
+        templateFile ? "✓ Found" : "✗ Not found",
+      );
+    } catch (error) {
+      this.resultEl.createEl("h3", {
+        text: "✗ Error",
+      });
+
+      this.resultEl.createEl("p", {
+        text: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private renderValue(
+    parent: HTMLElement,
+    name: string,
+    value: string | undefined,
+  ): void {
+    new Setting(parent).setName(name).setDesc(value ?? "");
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
   }
 }

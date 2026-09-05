@@ -1,8 +1,25 @@
 import esbuild from "esbuild";
+import fs from "node:fs";
+import path from "node:path";
 
 const production = process.argv.includes("production");
 
-await esbuild.build({
+const vaultPath = process.env.OBSIDIAN_VAULT;
+
+if (!vaultPath) {
+    throw new Error(
+        "OBSIDIAN_VAULT is not set.",
+    );
+}
+
+const pluginDir = path.join(
+    vaultPath,
+    ".obsidian",
+    "plugins",
+    "folder-templates",
+);
+
+const options = {
     entryPoints: ["src/main.ts"],
     bundle: true,
     external: ["obsidian"],
@@ -12,10 +29,58 @@ await esbuild.build({
     treeShaking: true,
     outfile: "main.js",
     minify: production,
-});
+};
 
-console.log(
-    production
-        ? "Built production plugin."
-        : "Built development plugin.",
-);
+function copyToVault() {
+    fs.mkdirSync(pluginDir, {
+        recursive: true,
+    });
+
+    fs.copyFileSync(
+        "main.js",
+        path.join(pluginDir, "main.js"),
+    );
+
+    fs.copyFileSync(
+        "src/styles.css",
+        path.join(pluginDir, "styles.css"),
+    );
+
+    fs.copyFileSync(
+        "manifest.json",
+        path.join(pluginDir, "manifest.json"),
+    );
+}
+
+if (production) {
+    await esbuild.build(options);
+
+    console.log("Built production plugin.");
+} else {
+    const context =
+        await esbuild.context(options);
+
+    await context.watch();
+
+    copyToVault();
+
+    fs.watch(
+        "src/styles.css",
+        () => {
+            copyToVault();
+            console.log("Copied styles.css → vault");
+        },
+    );
+
+    fs.watch(
+        "manifest.json",
+        () => {
+            copyToVault();
+            console.log("Copied manifest.json → vault");
+        },
+    );
+
+    console.log(
+        `Watching → ${pluginDir}`,
+    );
+}

@@ -1,0 +1,73 @@
+.folder-templates-rule {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+
+  margin: 12px 0;
+  overflow: hidden;
+}
+
+.folder-templates-rule > summary {
+  list-style: none;
+}
+
+.folder-templates-rule > summary::-webkit-details-marker {
+  display: none;
+}
+
+.folder-templates-rule-header {
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  min-width: 0;
+
+  padding: 8px 10px;
+
+  cursor: pointer;
+}
+
+.folder-templates-rule-header-left {
+  display: flex;
+  align-items: center;
+
+  flex: 1;
+  min-width: 0;
+}
+
+.folder-templates-rule-collapse {
+  flex: 0 0 16px;
+
+  width: 16px;
+  margin-right: 6px;
+
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+
+  user-select: none;
+}
+
+.folder-templates-rule-name {
+  width: 100%;
+  min-width: 0;
+
+  font-weight: 600;
+
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.folder-templates-rule-body {
+  box-sizing: border-box;
+
+  width: 100%;
+  min-width: 0;
+
+  padding: 0 10px 10px;
+}
