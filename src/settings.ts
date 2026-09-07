@@ -32,6 +32,7 @@ export class FolderTemplatesSettingTab extends PluginSettingTab {
             name: "Folder Templates settings",
             desc: "Configure automatic template rules.",
             render: (setting) => {
+              setting.settingEl.addClass("folder-templates-settings");
               setting.settingEl.empty();
               this.renderGeneralSettings(setting.settingEl);
               this.renderRules(setting.settingEl);
