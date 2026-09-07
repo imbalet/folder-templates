@@ -1,3 +1,7 @@
+.setting-item.folder-templates-settings {
+  display: block;
+}
+
 .folder-templates-rule {
   box-sizing: border-box;
   width: 100%;

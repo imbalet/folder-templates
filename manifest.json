@@ -1,7 +1,7 @@
 {
   "id": "folder-templates",
   "name": "Folder Templates",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "minAppVersion": "1.13.0",
   "description": "Automatically apply templates to notes based on their paths.",
   "author": "imbalet",
