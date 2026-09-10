@@ -24,7 +24,6 @@ export class TemplateRuleEngine {
 
   match(path: string): ResolvedTemplateRule[] {
     const matches = this.matcher.matchAll(path);
-
     return matches.map((match) => ({
       rule: match.rule.value,
       match,

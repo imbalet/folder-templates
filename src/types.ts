@@ -2,6 +2,8 @@ export type MatchMode = "regex" | "glob";
 
 export type ApplyMode = "first" | "all";
 
+export type AutomaticTrigger = "create" | "rename";
+
 export interface TemplateRule {
   id: string;
   name: string;
@@ -14,6 +16,8 @@ export interface TemplateRule {
 export interface FolderTemplatesSettings {
   enabled: boolean;
   automatic: boolean;
+  automaticTrigger: AutomaticTrigger;
+  automaticDelayMs: number;
   applyMode: ApplyMode;
   skipNonEmptyFiles: boolean;
   dateFormat: string;
@@ -24,6 +28,8 @@ export interface FolderTemplatesSettings {
 export const DEFAULT_SETTINGS: FolderTemplatesSettings = {
   enabled: true,
   automatic: true,
+  automaticTrigger: "create",
+  automaticDelayMs: 0,
   applyMode: "first",
   skipNonEmptyFiles: true,
   dateFormat: "YYYY-MM-DD",
@@ -48,6 +54,13 @@ export function normalizeSettings(data: unknown): FolderTemplatesSettings {
       typeof source.automatic === "boolean"
         ? source.automatic
         : DEFAULT_SETTINGS.automatic,
+    automaticTrigger:
+      source.automaticTrigger === "rename" ? "rename" : "create",
+    automaticDelayMs:
+      typeof source.automaticDelayMs === "number" &&
+      Number.isFinite(source.automaticDelayMs)
+        ? Math.max(0, Math.round(source.automaticDelayMs))
+        : DEFAULT_SETTINGS.automaticDelayMs,
     applyMode: source.applyMode === "all" ? "all" : "first",
     skipNonEmptyFiles:
       typeof source.skipNonEmptyFiles === "boolean"

@@ -3,6 +3,7 @@ import { App, MarkdownView, Modal, Notice, Plugin, TFile } from "obsidian";
 import {
   DEFAULT_SETTINGS,
   normalizeSettings,
+  type AutomaticTrigger,
   type FolderTemplatesSettings,
 } from "./types";
 
@@ -15,12 +16,18 @@ import {
 import { FolderTemplatesSettingTab } from "./settings";
 import { filterFilesInFolder } from "./path-utils";
 
+const LOG_PREFIX = "[folder-templates]";
+
 export default class FolderTemplatesPlugin extends Plugin {
   settings: FolderTemplatesSettings = DEFAULT_SETTINGS;
 
   async onload(): Promise<void> {
     await this.loadSettings();
-
+    console.log(LOG_PREFIX, "loaded", {
+      enabled: this.settings.enabled,
+      automatic: this.settings.automatic,
+      rules: this.settings.rules.length,
+    });
     this.addSettingTab(new FolderTemplatesSettingTab(this.app, this));
 
     this.registerCommands();
@@ -28,14 +35,27 @@ export default class FolderTemplatesPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.registerEvent(
         this.app.vault.on("create", (file) => {
+          console.log(LOG_PREFIX, "create", file.path);
           if (!(file instanceof TFile)) {
             return;
           }
 
-          void this.handleCreate(file);
+          void this.handleAutomatic(file, "create");
         }),
       );
     });
+    this.app.workspace.onLayoutReady(() =>
+      this.registerEvent(
+        this.app.vault.on("rename", (file, oldPath) => {
+          if (!(file instanceof TFile)) return;
+          const slash = oldPath.lastIndexOf("/");
+          const oldParent = slash < 0 ? "" : oldPath.slice(0, slash);
+          const newParent = file.parent?.path ?? "";
+          if (oldParent !== newParent) return;
+          void this.handleAutomatic(file, "rename");
+        }),
+      ),
+    );
   }
 
   async loadSettings(): Promise<void> {
@@ -137,18 +157,28 @@ export default class FolderTemplatesPlugin extends Plugin {
     });
   }
 
-  private async handleCreate(file: TFile): Promise<void> {
+  private async handleAutomatic(
+    file: TFile,
+    trigger: AutomaticTrigger,
+  ): Promise<void> {
     if (!this.settings.enabled) {
       return;
     }
 
-    if (!this.settings.automatic || !this.settings.enabled) {
+    if (!this.settings.automatic) {
       return;
     }
 
     if (file.extension !== "md") {
       return;
     }
+
+    if (this.settings.automaticTrigger !== trigger) return;
+
+    if (this.settings.automaticDelayMs > 0)
+      await new Promise<void>((resolve) =>
+        window.setTimeout(resolve, this.settings.automaticDelayMs),
+      );
 
     await this.applyToFile(file);
   }
@@ -157,7 +187,7 @@ export default class FolderTemplatesPlugin extends Plugin {
     const operations = new TemplateOperations(this.app, this.settings);
 
     const result = await operations.applyToFile(file);
-
+    console.log(LOG_PREFIX, "result", file.path, result.reason ?? result.error);
     if (result.applied) {
       new Notice(`Template applied: ${file.path}`);
     } else if (result.error) {

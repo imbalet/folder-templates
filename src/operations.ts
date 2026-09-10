@@ -53,7 +53,6 @@ export class TemplateOperations {
     try {
       const ruleEngine = this.createRuleEngine();
       const matches = ruleEngine.match(file.path);
-
       if (matches.length === 0) {
         return {
           file,
@@ -69,7 +68,6 @@ export class TemplateOperations {
       const paths = selected.map((resolved) =>
         ruleEngine.resolveTemplatePath(resolved.rule.template, resolved),
       );
-
       if (paths.some((path) => path.replace(/\\/g, "/") === file.path)) {
         return {
           file,
@@ -104,7 +102,6 @@ export class TemplateOperations {
         const prefix = rendered.join("\n");
 
         applied = true;
-
         return current.length > 0 ? `${prefix}\n${current}` : prefix;
       });
 
